@@ -67,7 +67,7 @@ elseif(WIN32)
     endif()
 endif()
 
-set(_ossl_cpm_options "OPENSSL_TARGET_VERSION 4.0.0")
+set(_ossl_cpm_options "OPENSSL_TARGET_VERSION 3.6.2")
 if(_ossl_target_platform)
     list(APPEND _ossl_cpm_options "OPENSSL_TARGET_PLATFORM ${_ossl_target_platform}")
 endif()
