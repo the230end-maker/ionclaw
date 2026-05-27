@@ -1,6 +1,5 @@
 #include "ionclaw/server/Routes.hpp"
 
-#include <cstdlib>
 #include <map>
 #include <string>
 
@@ -74,7 +73,7 @@ void Routes::handleEnvironmentVariablesUpdate(Poco::Net::HTTPServerRequest &req,
         {
             if (result.find(entry.first) == result.end())
             {
-                unsetenv(entry.first.c_str());
+                ionclaw::util::EnvironmentHelper::unset(entry.first);
             }
         }
 

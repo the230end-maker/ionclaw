@@ -45,12 +45,31 @@ bool EnvironmentHelper::isSet(const std::string &name)
     return std::getenv(name.c_str()) != nullptr;
 }
 
+void EnvironmentHelper::set(const std::string &name, const std::string &value)
+{
+#if defined(_WIN32)
+    _putenv_s(name.c_str(), value.c_str());
+#else
+    setenv(name.c_str(), value.c_str(), 1);
+#endif
+}
+
+void EnvironmentHelper::unset(const std::string &name)
+{
+    // an empty value removes the variable on windows, matching unsetenv elsewhere
+#if defined(_WIN32)
+    _putenv_s(name.c_str(), "");
+#else
+    unsetenv(name.c_str());
+#endif
+}
+
 void EnvironmentHelper::loadDotEnv(const std::string &projectPath)
 {
     // the project .env is the source of truth, so it overrides any inherited environment
     for (const auto &[key, value] : readDotEnv(projectPath))
     {
-        setenv(key.c_str(), value.c_str(), 1);
+        set(key, value);
     }
 }
 
