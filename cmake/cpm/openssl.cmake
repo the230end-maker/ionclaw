@@ -180,6 +180,26 @@ my %targets = (
     list(APPEND _ossl_options no-apps "--config=${_ossl_conf}")
 endif()
 
+# openssl-cmake compiles with a plain cc and drops the sdk sysroot from the target.
+# without an explicit -isysroot the compiler falls back to the macos sdk while targeting an apple cross-platform.
+# on the x86_64 simulator that pulls in the macos-only opendir$INODE64 symbol, which then fails to link.
+if(CMAKE_OSX_SYSROOT)
+    if(IS_DIRECTORY "${CMAKE_OSX_SYSROOT}")
+        set(_ossl_sysroot "${CMAKE_OSX_SYSROOT}")
+    else()
+        execute_process(
+            COMMAND xcrun --sdk ${CMAKE_OSX_SYSROOT} --show-sdk-path
+            OUTPUT_VARIABLE _ossl_sysroot
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            ERROR_QUIET
+        )
+    endif()
+
+    if(_ossl_sysroot)
+        list(APPEND _ossl_options "-isysroot ${_ossl_sysroot}")
+    endif()
+endif()
+
 # extra options must reach openssl-cmake as a real list, so set the cache variable directly
 if(_ossl_options)
     set(OPENSSL_CONFIGURE_OPTIONS ${_ossl_options} CACHE INTERNAL "" FORCE)
