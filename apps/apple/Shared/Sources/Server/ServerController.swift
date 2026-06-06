@@ -29,6 +29,26 @@ final class ServerController: ObservableObject {
         isBusy = false
     }
 
+    // creates the project skeleton on demand without starting the server
+    func initializeProject() async {
+        guard !isBusy, !isRunning else { return }
+
+        isBusy = true
+        lastError = nil
+
+        do {
+            let projectPath = Self.projectPath()
+
+            try await Task.detached(priority: .userInitiated) {
+                try IonClawRuntime.initializeProject(at: projectPath)
+            }.value
+        } catch {
+            lastError = error.localizedDescription
+        }
+
+        isBusy = false
+    }
+
     func stop() async {
         guard !isBusy, isRunning else { return }
 

@@ -80,7 +80,7 @@ IonClaw includes a native C++ tools system. Built-in capabilities include:
 - Subagent spawning and cron scheduling
 - Persistent memory and session handling
 - [MCP Server](mcp.md) — expose agents to external AI clients via the Model Context Protocol
-- MCP Client — connect to external MCP servers to use their tools and resources
+- [MCP Client](mcp.md) — connect to external MCP servers to use their tools and resources
 
 ---
 

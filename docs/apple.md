@@ -56,7 +56,7 @@ The voice screen captures a message through the platform's native dictation, the
 
 ### Local notifications
 
-The agent can show a local notification through the `invoke_platform` tool: `invoke_platform("local-notification.send", {"title": "...", "message": "..."})`. The native handler lives in `Shared/Sources/Platform/PlatformBridge.swift`, registered once at launch via `ionclaw_set_platform_handler` and responding asynchronously via `ionclaw_platform_respond` (same C ABI the Flutter app uses). It schedules the notification with `UserNotifications` and requests authorization lazily on first use.
+The agent can show a local notification through the `invoke_platform` tool: `invoke_platform("local-notification.send", {"title": "...", "message": "..."})`. The native handler lives in `Shared/Sources/Platform/PlatformBridge.swift`, registered once at launch via `ionclaw_set_platform_handler` and responding asynchronously via `ionclaw_platform_respond` (same C ABI the Flutter app uses). It requests notification authorization at launch and schedules the notification with `UserNotifications`.
 
 - **iOS / watchOS**: full support — alert, sound, and badge, shown in the foreground too (via the `UNUserNotificationCenter` delegate).
 - **tvOS**: not supported — Apple restricts tvOS to app-icon badges (no alert banners, and `UNNotificationContent.sound` is unavailable), so `local-notification.send` returns an error explaining the limitation.

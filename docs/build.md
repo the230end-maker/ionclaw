@@ -71,6 +71,10 @@ Requires `ANDROID_NDK_ROOT` environment variable or `ANDROID_NDK=...` argument. 
 
 Individual ABI targets are also available: `build-android-arm64`, `build-android-armv7`, `build-android-x86_64`, `build-android-x86`.
 
+### `make build-android-aar`
+
+Assembles the standalone **`ionclaw.aar`** consumed by the native [Android app](android.md) (and distributable on its own). Builds the native `.so` for the 64-bit ABIs (`arm64-v8a`, `x86_64`) if not already present and bundles the NDK `libomp.so` (`link-android`), then runs the standalone `apps/android/library` Gradle build. Output: `build/android-aar/ionclaw.aar`. The aar is 64-bit only because llama.cpp does not build on 32-bit arm.
+
 ### `make build-docker`
 
 Builds a **Docker image** tagged `ionclaw`. Requires a `Dockerfile` in the project root.
@@ -114,6 +118,10 @@ Runs the **Flutter app on iOS**. Only builds the XCFramework if it doesn't alrea
 ### `make run-flutter-android`
 
 Runs the **Flutter app on Android**. Only builds the native libraries and web client if they don't already exist (`prepare-flutter-android`).
+
+### `make run-android`
+
+Builds (if needed) the aar via `build-android-aar`, installs the native [Android app](android.md) with `./gradlew installDebug` from `apps/android/app`, and launches it via `adb`.
 
 ## Release Commands
 
@@ -175,6 +183,16 @@ Creates a **symlink** from the built iOS `ionclaw.xcframework` to the Flutter pl
 
 Builds Android native libraries and **copies** the `.so` files to `apps/flutter/plugin/android/src/main/jniLibs/{ABI}/`. Automatically builds all ABIs first.
 
+### `make link-android`
+
+Builds the Android native libraries for the **64-bit ABIs** (`arm64-v8a`, `x86_64`) and **copies** them — plus the NDK `libomp.so` the engine links against — into the standalone aar project at `apps/android/library/src/main/jniLibs/{ABI}/`. 32-bit arm is skipped because llama.cpp does not build there.
+
+### `make prepare-android`
+
+Builds the Android `.so` files for the aar library **only if they don't already exist**. Used by `build-android-aar`.
+
+To force a rebuild: `make clean-android link-android`.
+
 ## Clean Commands
 
 | Command | What it removes |
@@ -184,7 +202,7 @@ Builds Android native libraries and **copies** the `.so` files to `apps/flutter/
 | `make clean-web` | Web client output (`main/resources/web/`) |
 | `make clean-lib` | Shared library build (`build/shared/`) |
 | `make clean-ios` | iOS builds and XCFramework |
-| `make clean-android` | Android builds and jniLibs |
+| `make clean-android` | Android builds, jniLibs, and the aar |
 
 ## Code Commands
 
@@ -207,6 +225,7 @@ Formats **all C/C++/ObjC source files** (`.cpp`, `.hpp`, `.c`, `.h`, `.m`, `.mm`
 | `build/android-armeabi-v7a/` | Android armv7 library |
 | `build/android-x86_64/` | Android x86_64 library (emulator) |
 | `build/android-x86/` | Android x86 library (emulator) |
+| `build/android-aar/` | Standalone `ionclaw.aar` (native Android app) |
 
 ## Common Workflows
 
@@ -245,6 +264,14 @@ make run-flutter-ios    # builds xcframework, links, and runs Flutter app
 ```bash
 # set NDK path (or export ANDROID_NDK_ROOT)
 make run-flutter-android ANDROID_NDK=/path/to/ndk
+```
+
+### Native app (Android)
+
+```bash
+# set NDK path (or export ANDROID_NDK_ROOT)
+make build-android-aar ANDROID_NDK=/path/to/ndk   # standalone, distributable aar
+make run-android ANDROID_NDK=/path/to/ndk         # builds the aar, installs, and launches
 ```
 
 ### Release builds

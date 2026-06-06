@@ -6,11 +6,13 @@ struct PanelView: View {
     let url: URL?
 
     @State private var isLoading = true
+    @State private var reloadID = UUID()
 
     var body: some View {
         Group {
             if let url {
                 WebPanel(url: url, isLoading: $isLoading)
+                    .id(reloadID)
                     .overlay {
                         if isLoading {
                             ProgressView()
@@ -22,8 +24,27 @@ struct PanelView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("Panel")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Image("HeaderLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 34)
+            }
+
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button {
+                    isLoading = true
+                    reloadID = UUID()
+                } label: {
+                    Image(systemName: "house")
+                }
+            }
+        }
+        .toolbarBackground(Theme.header, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }
 
