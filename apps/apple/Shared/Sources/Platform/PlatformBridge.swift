@@ -21,7 +21,19 @@ final class IonClawPlatform: NSObject, UNUserNotificationCenterDelegate {
     // registers the async platform handler with the native core. safe to call once at launch.
     func register() {
         UNUserNotificationCenter.current().delegate = self
+        requestNotificationAuthorization()
         ionclaw_set_platform_handler(platformCallback, 30)
+    }
+
+    // asks for local notification permission upfront so the agent can notify the user later
+    private func requestNotificationAuthorization() {
+        #if os(tvOS)
+        let options: UNAuthorizationOptions = [.badge]
+        #else
+        let options: UNAuthorizationOptions = [.alert, .sound, .badge]
+        #endif
+
+        UNUserNotificationCenter.current().requestAuthorization(options: options) { _, _ in }
     }
 
     // dispatches a request coming from the native core. runs on a core thread and must not block;

@@ -16,71 +16,41 @@ struct ServerView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section {
-                    VStack(spacing: 20) {
-                        Image("Logo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: 200, maxHeight: 60)
+            ScrollView {
+                VStack(spacing: 28) {
+                    ServerStatusView(isRunning: server.isRunning)
 
-                        ServerStatusView(isRunning: server.isRunning)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .contentShape(Rectangle())
-                    .onTapGesture { focusedField = nil }
-                    .listRowBackground(Color.clear)
-                }
+                    serverCard
 
-                Section("Server") {
-                    LabeledContent("Host") {
-                        TextField("0.0.0.0", text: $config.host)
-                            .multilineTextAlignment(.trailing)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .focused($focusedField, equals: .host)
+                    actionButtons
+
+                    if server.isRunning, !server.addresses.isEmpty {
+                        networkCard
                     }
 
-                    LabeledContent("Port") {
-                        TextField("8080", text: portText)
-                            .multilineTextAlignment(.trailing)
-                            .keyboardType(.numberPad)
-                            .focused($focusedField, equals: .port)
-                    }
-                }
-                .disabled(server.isRunning || server.isBusy)
-
-                Section {
-                    primaryButton
-                        .alignmentGuide(.listRowSeparatorLeading) { _ in 0 }
-
-                    if server.isRunning {
-                        Button {
-                            showPanel = true
-                        } label: {
-                            Label("Open Panel", systemImage: "safari")
-                        }
-                    }
-                }
-
-                if server.isRunning, !server.addresses.isEmpty {
-                    Section("Network") {
-                        ForEach(server.addresses, id: \.self, content: networkRow)
-                    }
-                }
-
-                if let error = server.lastError {
-                    Section {
+                    if let error = server.lastError {
                         Text(error)
                             .font(.footnote)
                             .foregroundStyle(Theme.danger)
                     }
                 }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 40)
+                .frame(maxWidth: .infinity)
             }
-            .navigationTitle("IonClaw")
-            .toolbar(.hidden, for: .navigationBar)
+            .background(Theme.screen)
             .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Image("HeaderLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 34)
+                }
+            }
+            .toolbarBackground(Theme.header, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .navigationDestination(isPresented: $showPanel) {
                 PanelView(url: panelURL)
             }
@@ -88,27 +58,59 @@ struct ServerView: View {
         .tint(Theme.primary)
     }
 
-    private var primaryButton: some View {
-        Button {
-            focusedField = nil
-            toggleServer()
-        } label: {
-            HStack {
-                Spacer()
+    private var serverCard: some View {
+        SectionCard(title: "Server", systemImage: "server.rack", tint: Theme.primary) {
+            HStack(alignment: .top, spacing: 12) {
+                borderedField("Host", placeholder: "0.0.0.0", text: $config.host)
+                    .focused($focusedField, equals: .host)
 
-                if server.isBusy {
-                    ProgressView()
-                } else {
-                    Label(server.isRunning ? "Stop Server" : "Start Server",
-                          systemImage: server.isRunning ? "stop.fill" : "play.fill")
-                        .fontWeight(.semibold)
+                borderedField("Port", placeholder: "8080", text: portText)
+                    .keyboardType(.numberPad)
+                    .focused($focusedField, equals: .port)
+                    .frame(width: 96)
+            }
+            .disabled(server.isRunning || server.isBusy)
+        }
+    }
+
+    private var actionButtons: some View {
+        VStack(spacing: 12) {
+            if server.isBusy {
+                ProgressView()
+                    .frame(height: 52)
+            } else if server.isRunning {
+                outlinedButton("Stop Server", systemImage: "stop.fill", color: Theme.danger) {
+                    Task { await server.stop() }
                 }
 
-                Spacer()
+                outlinedButton("Open Panel", systemImage: "globe", color: Theme.primary) {
+                    showPanel = true
+                }
+            } else {
+                Button {
+                    focusedField = nil
+                    Task { await server.start(host: config.host, port: config.port) }
+                } label: {
+                    actionLabel("Start Server", systemImage: "play.fill")
+                        .foregroundStyle(.white)
+                        .background(Theme.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+
+                outlinedButton("Initialize Project", systemImage: "folder", color: Theme.primary) {
+                    focusedField = nil
+                    Task { await server.initializeProject() }
+                }
             }
         }
-        .disabled(server.isBusy)
-        .foregroundStyle(server.isRunning ? Theme.danger : Theme.primary)
+    }
+
+    private var networkCard: some View {
+        SectionCard(title: "Network", systemImage: "wifi", tint: Theme.success) {
+            VStack(spacing: 4) {
+                ForEach(server.addresses, id: \.self, content: networkRow)
+            }
+        }
     }
 
     private func networkRow(_ address: String) -> some View {
@@ -121,24 +123,46 @@ struct ServerView: View {
             HStack {
                 Text(url)
                     .font(.callout.monospaced())
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color(hex: 0x616161))
 
                 Spacer()
 
                 Image(systemName: copiedAddress == address ? "checkmark" : "doc.on.doc")
                     .foregroundStyle(copiedAddress == address ? Theme.success : Theme.primary)
             }
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
     }
 
-    private func toggleServer() {
-        Task {
-            if server.isRunning {
-                await server.stop()
-            } else {
-                await server.start(host: config.host, port: config.port)
-            }
+    private func borderedField(_ label: String, placeholder: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            TextField(placeholder, text: text)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .padding(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.cardBorder, lineWidth: 1))
         }
+    }
+
+    private func outlinedButton(_ title: String, systemImage: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            actionLabel(title, systemImage: systemImage)
+                .foregroundStyle(color)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(color, lineWidth: 1.5))
+        }
+    }
+
+    private func actionLabel(_ title: String, systemImage: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: systemImage)
+            Text(title).fontWeight(.semibold)
+        }
+        .frame(width: 240, height: 52)
     }
 
     private var panelURL: URL? {
@@ -150,5 +174,36 @@ struct ServerView: View {
             get: { String(config.port) },
             set: { config.port = Int($0.filter(\.isNumber)) ?? config.port }
         )
+    }
+}
+
+// a white rounded card with a tinted icon badge and a title, mirroring the flutter cards
+private struct SectionCard<Content: View>: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 16))
+                    .foregroundStyle(tint)
+                    .frame(width: 32, height: 32)
+                    .background(tint.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                Text(title)
+                    .font(.headline)
+            }
+
+            content
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Theme.card)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.cardBorder, lineWidth: 1))
     }
 }

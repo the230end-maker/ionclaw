@@ -56,7 +56,7 @@ Because native means fast startup, low memory, no dependencies, and true portabi
 - **Memory** — persistent memory with search-based recall across sessions
 - **File management** — read, write, search, and organize files within sandboxed workspaces
 - **MCP Server** — expose agents via the [Model Context Protocol](https://modelcontextprotocol.io/) for use with Claude Code, Cursor, GitHub Copilot, and other MCP clients
-- **MCP Client** — connect to external MCP servers to use their tools and resources
+- **MCP Client** — connect to external [MCP](https://modelcontextprotocol.io/) servers to use their tools and resources
 - **Secure** — sandboxed workspaces, JWT auth, tool policy per agent, hook system for custom rules
 
 ## Screenshots
@@ -94,9 +94,11 @@ Open `http://localhost:8080` in your browser. The web panel is served automatica
 - [Installation](docs/installation.md) — Homebrew, build from source, Docker, and cloud deploy
 - [Build](docs/build.md) — Build system and Makefile targets
 - [Configuration](docs/configuration.md) — Full config.yml reference
+- [API](docs/api.md) — REST API and WebSocket reference
 - [Custom Providers](docs/custom-providers.md) — Ollama, LM Studio, MiniMax, and other OpenAI-compatible providers
 - [Llama.cpp Provider](docs/llama.md) — Offline GGUF models via the embedded llama.cpp backend
 - [Apple](docs/apple.md) — Native iOS, tvOS, and watchOS apps (SwiftUI + XcodeGen)
+- [Android](docs/android.md) — Native Android app (Kotlin + Compose) and the distributable aar
 - [Flutter](docs/flutter.md) — Flutter app, release builds, and signing
 - [Skills](docs/skills.md) — Creating and managing skills
 - [Tools](docs/tools.md) — Built-in tools reference
@@ -104,6 +106,7 @@ Open `http://localhost:8080` in your browser. The web panel is served automatica
 - [Image Generation](docs/image-generation.md) — Provider-specific image generation and editing
 - [Docker](docs/docker.md) — Docker build, run, and compose
 - [Deploy](docs/deploy.md) — One-click deploy to cloud platforms
+- [Screenshots](docs/screenshots.md) — IonClaw running on web, native, and Flutter apps
 
 ## License
 

@@ -346,7 +346,12 @@ export const useChatStore = defineStore('chat', () => {
       }
     } catch (e) {
       if (currentSessionId.value !== sessionKey) return
-      console.error('[chat] loadHistory error:', e)
+
+      // a session that has never been used yet simply has no history (new chat), not an error
+      if (e.status !== 404) {
+        console.error('[chat] loadHistory error:', e)
+      }
+
       messages.value = []
       liveMessage.value = null
       toolRunning.value = false

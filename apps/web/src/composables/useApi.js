@@ -28,7 +28,11 @@ export function useApi() {
       } catch (e) {
         console.warn('[api] Failed to parse error response as JSON:', e.message)
       }
-      throw new Error(message)
+
+      // expose the status so callers can tell apart expected cases (e.g. 404) from real errors
+      const error = new Error(message)
+      error.status = res.status
+      throw error
     }
   }
 
