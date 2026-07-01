@@ -1,24 +1,34 @@
-name: Build iOS
+name: Build Flutter iOS (Unsigned)
 
 on:
   workflow_dispatch:
-  workflow_call:
     inputs:
-      release:
-        type: boolean
-        default: false
+      release_type:
+        description: 'Build type'
+        required: true
+        default: 'unsigned'
+        type: choice
+        options:
+          - unsigned
+          - debug
 
 env:
   BUILD_TYPE: Release
   CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm-cache
 
 jobs:
-  build:
-    name: iOS (XCFramework)
+  build-ios-unsigned:
+    name: Build Flutter iOS (Unsigned IPA)
     runs-on: macos-15
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 'stable'
+          channel: 'stable'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -42,19 +52,19 @@ jobs:
           key: cpm-ios-${{ hashFiles('cmake/cpm/cpm-dependency.cmake') }}
           restore-keys: cpm-ios-
 
-      - name: Build iOS arm64
+      - name: Build iOS XCFramework (arm64)
         run: |
           cmake -B build/ios-arm64 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DIONCLAW_BUILD_SHARED=ON \
             -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_SYSROOT=iphoneos
           cmake --build build/ios-arm64 --config ${{ env.BUILD_TYPE }} -j$(sysctl -n hw.ncpu)
 
-      - name: Build iOS simulator arm64
+      - name: Build iOS XCFramework (simulator arm64)
         run: |
           cmake -B build/ios-sim-arm64 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DIONCLAW_BUILD_SHARED=ON \
             -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_SYSROOT=iphonesimulator
           cmake --build build/ios-sim-arm64 --config ${{ env.BUILD_TYPE }} -j$(sysctl -n hw.ncpu)
 
-      - name: Build iOS simulator x86_64
+      - name: Build iOS XCFramework (simulator x86_64)
         run: |
           cmake -B build/ios-sim-x86_64 -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DIONCLAW_BUILD_SHARED=ON \
             -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_SYSROOT=iphonesimulator
@@ -73,22 +83,47 @@ jobs:
             -framework build/xcframework/sim/ionclaw.framework \
             -output build/xcframework/ionclaw.xcframework
 
-      - name: Verify XCFramework
-        if: ${{ !inputs.release }}
-        run: ls -la build/xcframework/ionclaw.xcframework/
-
-      - name: Package XCFramework
-        if: ${{ inputs.release }}
+      - name: Link XCFramework to Flutter plugin
         run: |
-          mkdir -p dist
-          cp -R build/xcframework/ionclaw.xcframework dist/
-          cp main/lib/include/ionclaw/ionclaw.h dist/
-          cp LICENSE.md dist/
-          tar -czf ionclaw-ios-xcframework.tar.gz -C dist .
+          mkdir -p apps/flutter/plugin/ios
+          ln -sf $PWD/build/xcframework/ionclaw.xcframework apps/flutter/plugin/ios/ionclaw.xcframework
 
-      - name: Upload artifacts
-        if: ${{ inputs.release }}
+      - name: Get Flutter dependencies
+        run: |
+          cd apps/flutter/runner
+          flutter pub get
+
+      - name: Build Flutter iOS (unsigned)
+        run: |
+          cd apps/flutter/runner
+          flutter build ipa \
+            --no-code-sign \
+            --release \
+            --split-debug-info=build/app/outputs/symbols
+
+      - name: Display build output
+        run: |
+          ls -lah apps/flutter/runner/build/app/outputs/ipa/
+          echo "IPA built successfully!"
+          echo "Location: apps/flutter/runner/build/app/outputs/ipa/Runner.ipa"
+
+      - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ionclaw-ios-xcframework
-          path: ionclaw-ios-xcframework.tar.gz
+          name: ionclaw-ios-unsigned-ipa
+          path: apps/flutter/runner/build/app/outputs/ipa/Runner.ipa
+          retention-days: 30
+
+      - name: Create summary
+        run: |
+          echo "## ✅ Flutter iOS Build Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build Type**: Unsigned" >> $GITHUB_STEP_SUMMARY
+          echo "**Output**: Runner.ipa" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: Ready for signing" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Download the IPA from artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "2. Sign it with your certificate using:" >> $GITHUB_STEP_SUMMARY
+          echo "   \`codesign -s 'Apple Distribution: ...' Runner.ipa\`" >> $GITHUB_STEP_SUMMARY
+          echo "3. Or use Xcode to re-sign the IPA" >> $GITHUB_STEP_SUMMARY
