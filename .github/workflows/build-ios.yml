@@ -11,6 +11,14 @@ on:
         options:
           - unsigned
           - debug
+  workflow_call:
+    # مدخلات اختيارية يمكن تمريرها من الـ workflow المستدعي (حالياً لا تُستخدم لكنها تُهيئ للاستقبال مستقبلاً)
+    inputs:
+      release_type:
+        description: 'Build type'
+        required: false
+        default: 'unsigned'
+        type: string
 
 env:
   BUILD_TYPE: Release
