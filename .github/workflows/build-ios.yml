@@ -12,7 +12,6 @@ on:
           - unsigned
           - debug
   workflow_call:
-    # مدخلات اختيارية يمكن تمريرها من الـ workflow المستدعي (حالياً لا تُستخدم لكنها تُهيئ للاستقبال مستقبلاً)
     inputs:
       release_type:
         description: 'Build type'
@@ -27,7 +26,7 @@ env:
 jobs:
   build-ios-unsigned:
     name: Build Flutter iOS (Unsigned IPA)
-    runs-on: macos-15
+    runs-on: macos-latest   # أو macos-14 إذا كان macos-15 غير متاح بعد
 
     steps:
       - uses: actions/checkout@v4
@@ -35,7 +34,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-         channel: 'stable'   # يكفي هذا لآخر إصدار ثابت
+          channel: 'stable'   # سيجلب أحدث إصدار ثابت تلقائياً
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
